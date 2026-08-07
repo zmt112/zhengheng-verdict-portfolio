@@ -1,0 +1,317 @@
+{
+  "schemaVersion": "1.0.0",
+  "fixtureType": "SYNTHETIC_END_TO_END_CASE",
+  "truthLabel": "平台坐标锚点来自高德官方文档示例；轨迹、人物、订单、录音和纠纷均为合成数据，不代表真实行程",
+  "case": {
+    "caseId": "CASE-005",
+    "ticketId": "TKT-20260718-0005",
+    "orderId": "ORD-20260718-140805-005",
+    "title": "截图真实，但不能证明司机取消时未到达",
+    "scenario": "司机是否到达及取消费争议",
+    "status": "READY_FOR_REVIEW",
+    "createdAt": "2026-07-18T14:42:16+08:00"
+  },
+  "map": {
+    "coordinateSystem": "GCJ-02",
+    "routeGeometryProvenance": "SYNTHETIC_PLACEHOLDER",
+    "routeProviderTarget": "AMAP_DIRECTION_V5",
+    "pickup": {
+      "name": "演示上车点 A",
+      "longitude": 116.465063,
+      "latitude": 39.999538,
+      "geofenceRadiusMeters": 60
+    },
+    "passengerObservedLocation": {
+      "name": "演示入口 B",
+      "longitude": 116.46365,
+      "latitude": 39.99995,
+      "distanceToPickupMeters": 129,
+      "accuracyMeters": 18
+    },
+    "driverRoute": [
+      [116.481499, 39.990475],
+      [116.47981, 39.99129],
+      [116.47792, 39.99241],
+      [116.47581, 39.99387],
+      [116.47342, 39.99561],
+      [116.47084, 39.99712],
+      [116.46852, 39.99823],
+      [116.46705, 39.99882],
+      [116.46618, 39.99917],
+      [116.46555, 39.9994],
+      [116.46538, 39.99949]
+    ],
+    "driverScreenshotPosition": {
+      "longitude": 116.46705,
+      "latitude": 39.99882,
+      "distanceToPickupMeters": 187,
+      "capturedAt": "2026-07-18T14:29:45+08:00"
+    },
+    "driverStopPosition": {
+      "longitude": 116.46538,
+      "latitude": 39.99949,
+      "distanceToPickupMeters": 28,
+      "accuracyMeters": 8
+    }
+  },
+  "participants": {
+    "driver": {
+      "syntheticId": "DRV-DEMO-005",
+      "displayName": "司机 D005"
+    },
+    "passenger": {
+      "syntheticId": "PSG-DEMO-005",
+      "displayName": "乘客 P005"
+    }
+  },
+  "order": {
+    "product": "快车演示产品",
+    "cancelFeeCny": 8,
+    "pickupRule": {
+      "ruleId": "CANCEL-ARRIVAL",
+      "version": "2026.07-demo",
+      "minimumWaitSeconds": 360,
+      "contactRequired": true
+    }
+  },
+  "events": [
+    {
+      "eventId": "EVT-001",
+      "type": "ORDER_CREATED",
+      "occurredAt": "2026-07-18T14:18:05+08:00",
+      "source": "ORDER_SERVICE",
+      "payload": {
+        "pickupLongitude": 116.465063,
+        "pickupLatitude": 39.999538
+      }
+    },
+    {
+      "eventId": "EVT-002",
+      "type": "DRIVER_ACCEPTED",
+      "occurredAt": "2026-07-18T14:18:11+08:00",
+      "source": "ORDER_SERVICE",
+      "payload": {
+        "driverLongitude": 116.481499,
+        "driverLatitude": 39.990475
+      }
+    },
+    {
+      "eventId": "EVT-003",
+      "type": "ROUTE_PLANNED",
+      "occurredAt": "2026-07-18T14:18:15+08:00",
+      "source": "NAVIGATION_SERVICE",
+      "payload": {
+        "routeVersion": "ROUTE-DEMO-005-v1",
+        "provider": "AMAP_DIRECTION_V5_TARGET",
+        "geometryStatus": "WAITING_FOR_REAL_PROVIDER_RESPONSE"
+      }
+    },
+    {
+      "eventId": "EVT-004",
+      "type": "PASSENGER_SCREENSHOT_CAPTURED",
+      "occurredAt": "2026-07-18T14:29:45+08:00",
+      "source": "PASSENGER_DEVICE",
+      "payload": {
+        "driverDistanceToPickupMeters": 187,
+        "note": "截图时司机确实仍在上车点外，但截图早于司机实际到达"
+      }
+    },
+    {
+      "eventId": "EVT-005",
+      "type": "DRIVER_ENTERED_GEOFENCE",
+      "occurredAt": "2026-07-18T14:31:06+08:00",
+      "source": "LOCATION_SDK",
+      "payload": {
+        "distanceToPickupMeters": 44,
+        "accuracyMeters": 9
+      }
+    },
+    {
+      "eventId": "EVT-006",
+      "type": "DRIVER_ARRIVED_CLICK",
+      "occurredAt": "2026-07-18T14:31:12+08:00",
+      "source": "ORDER_SERVICE",
+      "payload": {
+        "distanceToPickupMeters": 28,
+        "accuracyMeters": 8
+      }
+    },
+    {
+      "eventId": "EVT-007",
+      "type": "PASSENGER_LOCATION_OBSERVED",
+      "occurredAt": "2026-07-18T14:31:20+08:00",
+      "source": "PASSENGER_LOCATION_SDK",
+      "payload": {
+        "distanceToPickupMeters": 129,
+        "accuracyMeters": 18,
+        "authorization": "DEMO_GRANTED"
+      }
+    },
+    {
+      "eventId": "EVT-008",
+      "type": "PLATFORM_CALL_CONNECTED",
+      "occurredAt": "2026-07-18T14:32:10+08:00",
+      "source": "COMMUNICATION_SERVICE",
+      "payload": {
+        "durationSeconds": 28,
+        "recordingId": "AUD-005",
+        "contentUsedForDecision": false
+      }
+    },
+    {
+      "eventId": "EVT-009",
+      "type": "IM_SENT",
+      "occurredAt": "2026-07-18T14:34:30+08:00",
+      "source": "IM_SERVICE",
+      "payload": {
+        "sender": "PASSENGER",
+        "text": "我在入口 B，看不到你"
+      }
+    },
+    {
+      "eventId": "EVT-010",
+      "type": "ORDER_CANCELLED",
+      "occurredAt": "2026-07-18T14:37:34+08:00",
+      "source": "ORDER_SERVICE",
+      "payload": {
+        "cancelledBy": "DRIVER",
+        "reasonCode": "PASSENGER_NO_SHOW",
+        "elapsedSinceArrivalSeconds": 382,
+        "cancelFeeCny": 8
+      }
+    },
+    {
+      "eventId": "EVT-011",
+      "type": "DISPUTE_SUBMITTED",
+      "occurredAt": "2026-07-18T14:42:16+08:00",
+      "source": "PASSENGER_APP",
+      "payload": {
+        "category": "DRIVER_NOT_AT_PICKUP",
+        "statement": "司机一直没到我这里，却收了取消费。截图和录音都能证明。"
+      }
+    }
+  ],
+  "attachments": [
+    {
+      "attachmentId": "IMG-005",
+      "filename": "passenger-map-screenshot.png",
+      "localFixturePath": "outputs/case-005/passenger-map-screenshot.png",
+      "mediaType": "image/png",
+      "sha256": "40fcef73ddc72ba1a92a24810cd812a9d28513651e79bfaec3b5bf975eb0193d",
+      "evidenceRole": "USER_SUBMITTED_SUPPLEMENT",
+      "capturedAt": "2026-07-18T14:29:45+08:00",
+      "uploadedAt": "2026-07-18T14:42:40+08:00",
+      "smartAudit": {
+        "result": "PASS_WITH_LIMITATION",
+        "isScreenshot": true,
+        "manipulationRisk": "LOW",
+        "limitation": "真实性通过不代表截图中的位置状态能够证明取消时刻的事实"
+      },
+      "parser": {
+        "type": "OCR_AND_MAP_SEMANTIC_EXTRACTION",
+        "version": "demo-parser-1.0",
+        "output": {
+          "visibleTime": "14:29",
+          "visibleDistanceText": "距上车点约 190 米",
+          "driverPinExtracted": true
+        }
+      },
+      "quality": "LOW"
+    },
+    {
+      "attachmentId": "AUD-005",
+      "filename": "platform-call-demo.wav",
+      "localFixturePath": "outputs/case-005/platform-call-demo.wav",
+      "mediaType": "audio/wav",
+      "sha256": "777e3db79fae7e4c7d5e02b07715981671433ff564dcb7283dea6f0144447395",
+      "durationSeconds": 16.047755,
+      "recordingScope": "SYNTHETIC_EXCERPT_OF_28_SECOND_CALL",
+      "evidenceRole": "PLATFORM_RECORDING_DERIVED_TEXT",
+      "capturedAt": "2026-07-18T14:32:10+08:00",
+      "uploadedAt": "2026-07-18T14:42:44+08:00",
+      "smartAudit": {
+        "result": "PASS_WITH_LIMITATION",
+        "spliceRisk": "LOW",
+        "limitation": "音频内容用于理解双方位置认知，不直接证明车辆位置"
+      },
+      "parser": {
+        "type": "ASR_DIARIZATION",
+        "version": "demo-asr-1.0",
+        "output": {
+          "transcript": [
+            {
+              "speaker": "DRIVER",
+              "startMs": 800,
+              "endMs": 4500,
+              "text": "我已经到平台定位点，在东侧停车区。"
+            },
+            {
+              "speaker": "PASSENGER",
+              "startMs": 4800,
+              "endMs": 9000,
+              "text": "我在入口 B，没有看到你。"
+            },
+            {
+              "speaker": "DRIVER",
+              "startMs": 9200,
+              "endMs": 13800,
+              "text": "你的位置和平台上车点不是一个入口。"
+            }
+          ],
+          "candidateFact": "双方对上车点入口的理解不一致"
+        }
+      },
+      "quality": "MEDIUM"
+    }
+  ],
+  "claims": {
+    "passenger": "司机一直没到我这里，却收了取消费。截图和录音都能证明。",
+    "driver": "我按平台导航到达指定上车点，等待超过六分钟并联系了乘客。"
+  },
+  "facts": [
+    {
+      "factId": "F_GEOFENCE",
+      "status": "SUPPORTED",
+      "evidenceIds": ["EVT-005", "EVT-006"],
+      "note": "司机在取消前进入 60 米有效范围并停在距锚点 28 米处。"
+    },
+    {
+      "factId": "F_DWELL",
+      "status": "SUPPORTED",
+      "evidenceIds": ["EVT-005", "EVT-010"],
+      "note": "从进入有效范围到取消连续经过 388 秒。"
+    },
+    {
+      "factId": "F_CONTACT",
+      "status": "SUPPORTED",
+      "evidenceIds": ["EVT-008"],
+      "note": "平台通信服务记录一次接通 28 秒。"
+    },
+    {
+      "factId": "F_CANCEL_TIME",
+      "status": "SUPPORTED",
+      "evidenceIds": ["EVT-010"],
+      "note": "到达点击后 382 秒取消，达到演示规则阈值。"
+    },
+    {
+      "factId": "F_PICKUP_POINT_ALIGNED",
+      "status": "CONTRADICTED",
+      "evidenceIds": ["EVT-007", "EVT-009", "AUD-005"],
+      "note": "乘客位于距平台锚点 129 米的另一入口，双方位置认知不一致。"
+    }
+  ],
+  "decision": {
+    "gate": "AUTO_DECIDABLE",
+    "outcomeId": "DRIVER_FULFILLED",
+    "responsibilityConclusion": "现有第一方证据支持司机已到达平台指定上车点、完成必要联系并等待足时；乘客截图反映的是司机到达前状态，不能证明取消时司机未到达。",
+    "action": "维持取消费演示结论，不触发真实扣费或处罚。",
+    "parallelExperienceIssue": {
+      "issueType": "PICKUP_POINT_AMBIGUITY",
+      "summary": "司机和乘客分别位于两个入口，建议进入上车点体验治理队列。"
+    },
+    "rule": {
+      "ruleId": "CANCEL-ARRIVAL",
+      "version": "2026.07-demo"
+    }
+  }
+}

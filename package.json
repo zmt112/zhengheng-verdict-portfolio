@@ -1,0 +1,44 @@
+{
+  "name": "evidence-verdict-workbench",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build --webpack",
+    "build:pages": "GITHUB_PAGES=true next build --webpack",
+    "start": "next start",
+    "test": "npm run harness",
+    "test:domain": "node --test tests/verdict-engine.test.mjs",
+    "test:ui": "vitest run tests/workbench.test.tsx",
+    "harness": "npm run test:domain && npm run test:ui",
+    "loop": "node scripts/quality-loop.mjs",
+    "verify": "npm run harness && npm run lint && npm run build",
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern out"
+  },
+  "dependencies": {
+    "next": "16.2.6",
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.2.1",
+    "@testing-library/jest-dom": "^7.0.0",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "22.19.19",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "axe-core": "^4.12.1",
+    "eslint": "9.39.4",
+    "eslint-config-next": "16.2.6",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "jsdom": "^29.1.1",
+    "tailwindcss": "4.2.1",
+    "typescript": "5.9.3",
+    "vitest": "^4.1.10"
+  },
+  "type": "module"
+}

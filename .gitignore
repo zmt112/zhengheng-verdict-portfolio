@@ -1,0 +1,24 @@
+node_modules/
+.next/
+.vinext/
+out/
+dist/
+.wrangler/
+.openai/
+.env*
+!.env.example
+.DS_Store
+*.tsbuildinfo
+.portfolio-git/
+
+# Internal working notes and historical publish snapshots are not portfolio source.
+outputs/
+work/
+build/
+db/
+drizzle/
+worker/
+examples/
+vite.config.ts
+wrangler.jsonc
+drizzle.config.ts
