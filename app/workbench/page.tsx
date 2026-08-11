@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
+import type { CaseData } from "@/app/workbench/case-components";
+import { listLocalCases } from "@/lib/case-store";
 import { demoCases, proofTemplate } from "@/lib/cases";
 import { evaluateCase } from "@/lib/verdict-engine";
 
@@ -22,17 +24,28 @@ const queueMeta: Record<string, { owner: string; sla: string; updated: string; c
 export default function CaseQueuePage() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("ALL");
+  const [view, setView] = useState<"ALL" | "LOCAL" | "URGENT">("ALL");
   const [selected, setSelected] = useState<string[]>([]);
   const [notice, setNotice] = useState("");
+  const [localCases, setLocalCases] = useState<CaseData[]>([]);
 
-  const rows = useMemo(() => demoCases.map((caseData) => {
+  useEffect(() => {
+    listLocalCases<CaseData>().then(setLocalCases).catch(() => setLocalCases([]));
+  }, []);
+
+  const rows = useMemo(() => [...localCases, ...(demoCases as CaseData[])].map((caseData) => {
     const result = evaluateCase(caseData, proofTemplate);
-    return { caseData, result, meta: queueMeta[caseData.id], gate: gateMeta[result.gate as keyof typeof gateMeta] };
-  }), []);
+    const localMeta = { owner: caseData.owner ?? "待领取", sla: caseData.workflowStatus === "RESOLVED" ? "已结案" : "3 小时 59 分", updated: caseData.updatedAt ? new Date(caseData.updatedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false }) : "刚刚", completeness: result.coverage };
+    return { caseData, result, meta: queueMeta[caseData.id] ?? localMeta, gate: gateMeta[result.gate as keyof typeof gateMeta] };
+  }), [localCases]);
 
-  const visibleRows = rows.filter(({ caseData, result }) => {
+  const autoCount = rows.filter((row) => row.result.gate === "AUTO_DECIDABLE").length;
+  const reviewCount = rows.length - autoCount;
+
+  const visibleRows = rows.filter(({ caseData, result, meta }) => {
     const matchesQuery = `${caseData.id}${caseData.title}${caseData.description}`.toLowerCase().includes(query.toLowerCase());
-    return matchesQuery && (filter === "ALL" || result.gate === filter);
+    const matchesView = view === "ALL" || (view === "LOCAL" && caseData.storage === "LOCAL") || (view === "URGENT" && meta.sla === "26 分钟");
+    return matchesQuery && matchesView && (filter === "ALL" || result.gate === filter);
   });
 
   function toggleCase(caseId: string) {
@@ -43,21 +56,21 @@ export default function CaseQueuePage() {
     <div className="ops-page ops-queue-page">
       <div className="ops-page-heading">
         <div><p>案件运营 / 我的工作台</p><h1>案件队列</h1><span>按证据充分度和 SLA 安排研判优先级</span></div>
-        <div className="ops-page-actions"><button onClick={() => setNotice("当前筛选视图已生成演示导出任务")} type="button">导出视图</button><button className="primary" onClick={() => setNotice("演示站不写入真实案件，已保留创建入口")} type="button">＋ 新建演示案件</button></div>
+        <div className="ops-page-actions"><button onClick={() => setNotice("当前筛选视图已生成演示导出任务")} type="button">导出视图</button><Link className="primary" href="/workbench/new">＋ 新建案件</Link></div>
       </div>
 
       {notice && <div className="ops-action-notice" role="status"><span>✓</span>{notice}<button aria-label="关闭提示" onClick={() => setNotice("")} type="button">×</button></div>}
 
       <section className="ops-kpi-grid" aria-label="队列概况">
-        <article><span className="blue">待</span><div><small>待处理</small><strong>4</strong><p>今日新进入 3</p></div></article>
-        <article><span className="green">自</span><div><small>可自动判责</small><strong>2</strong><p>证据链已闭合</p></div></article>
-        <article><span className="amber">审</span><div><small>需人工复核</small><strong>2</strong><p>缺失或冲突</p></div></article>
+        <article><span className="blue">待</span><div><small>全部案件</small><strong>{rows.length}</strong><p>含 {localCases.length} 个本地上传</p></div></article>
+        <article><span className="green">自</span><div><small>可自动判责</small><strong>{autoCount}</strong><p>证据链已闭合</p></div></article>
+        <article><span className="amber">审</span><div><small>需人工复核</small><strong>{reviewCount}</strong><p>缺失或冲突</p></div></article>
         <article><span className="ink">时</span><div><small>平均处理时长</small><strong>6m</strong><p>演示口径 · 非业务指标</p></div></article>
       </section>
 
       <section className="ops-queue-card">
         <header className="ops-queue-toolbar">
-          <div className="ops-view-tabs"><button className="active" type="button">全部案件 <b>4</b></button><button type="button">我的案件 <b>0</b></button><button type="button">即将超时 <b>1</b></button></div>
+          <div className="ops-view-tabs"><button className={view === "ALL" ? "active" : ""} onClick={() => setView("ALL")} type="button">全部案件 <b>{rows.length}</b></button><button className={view === "LOCAL" ? "active" : ""} onClick={() => setView("LOCAL")} type="button">本地上传 <b>{localCases.length}</b></button><button className={view === "URGENT" ? "active" : ""} onClick={() => setView("URGENT")} type="button">即将超时 <b>1</b></button></div>
           <div className="ops-filters">
             <label className="ops-search"><span>⌕</span><input aria-label="搜索案件" placeholder="搜索案件 ID 或关键词" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
             <select aria-label="判责状态" value={filter} onChange={(event) => setFilter(event.target.value)}>
@@ -76,14 +89,14 @@ export default function CaseQueuePage() {
               {visibleRows.map(({ caseData, gate, meta }) => (
                 <tr key={caseData.id} data-testid={`queue-${caseData.id}`}>
                   <td><input aria-label={`选择 ${caseData.id}`} type="checkbox" checked={selected.includes(caseData.id)} onChange={() => toggleCase(caseData.id)} /></td>
-                  <td data-label="案件"><Link className="ops-case-link" href={`/workbench/cases/${caseData.id}`}><strong>{caseData.id}</strong><span>{caseData.title.replace(/^.*?·\s*/, "")}</span></Link></td>
+                  <td data-label="案件"><Link className="ops-case-link" href={caseData.storage === "LOCAL" ? `/workbench/local?caseId=${encodeURIComponent(caseData.id)}` : `/workbench/cases/${caseData.id}`}><strong>{caseData.id}{caseData.storage === "LOCAL" && <em>本地</em>}</strong><span>{caseData.title.replace(/^.*?·\s*/, "")}</span></Link></td>
                   <td data-label="门控状态"><span className={`ops-status ${gate.tone}`}><i />{gate.label}</span></td>
-                  <td data-label="争议场景"><span className="ops-cell-main">取消费争议</span><small>司机到达与等待</small></td>
+                  <td data-label="争议场景"><span className="ops-cell-main">取消费争议</span><small>{caseData.storage === "LOCAL" ? "真实上传解析" : "司机到达与等待"}</small></td>
                   <td data-label="证据完整度"><div className="ops-progress"><span><i style={{ width: `${meta.completeness}%` }} /></span><b>{meta.completeness}%</b></div></td>
                   <td data-label="当前处理人"><span className="ops-owner"><i>{meta.owner === "待领取" ? "—" : "专"}</i>{meta.owner}</span></td>
                   <td data-label="SLA 剩余"><strong className={meta.sla === "26 分钟" ? "ops-sla urgent" : "ops-sla"}>{meta.sla}</strong></td>
                   <td data-label="最近更新"><span className="ops-muted-cell">{meta.updated}</span></td>
-                  <td><Link className="ops-row-action" aria-label={`打开 ${caseData.id}`} href={`/workbench/cases/${caseData.id}`}>→</Link></td>
+                  <td><Link className="ops-row-action" aria-label={`打开 ${caseData.id}`} href={caseData.storage === "LOCAL" ? `/workbench/local?caseId=${encodeURIComponent(caseData.id)}` : `/workbench/cases/${caseData.id}`}>→</Link></td>
                 </tr>
               ))}
             </tbody>
@@ -92,7 +105,7 @@ export default function CaseQueuePage() {
         </div>
         <footer className="ops-pagination"><span>共 {visibleRows.length} 条</span><div><button disabled type="button">‹</button><button className="active" type="button">1</button><button disabled type="button">›</button></div></footer>
       </section>
-      <p className="ops-demo-note">本页面使用合成数据，指标仅用于展示信息架构，不代表真实业务效果。</p>
+      <p className="ops-demo-note">预置案件为合成数据；“本地”案件来自当前浏览器真实上传与解析。</p>
     </div>
   );
 }

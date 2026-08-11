@@ -75,7 +75,7 @@ describe("案件运营工作台交互契约", () => {
     render(<CaseDecision caseData={demoCases[0]} />);
 
     await user.click(screen.getByRole("button", { name: "采纳建议并结案" }));
-    expect(screen.getByRole("status")).toHaveTextContent("未触发真实处置");
+    expect(screen.getByRole("status")).toHaveTextContent("裁决已保存并写入审计记录（演示）");
   });
 
   it("初始队列无 axe 可自动识别的可访问性违规", async () => {

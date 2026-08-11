@@ -13,7 +13,7 @@ export default function WorkbenchLayout({ children }: { children: React.ReactNod
         </Link>
         <nav aria-label="工作台主导航">
           <p>工作空间</p>
-          <Link className="active" href="/workbench"><NavIcon>▦</NavIcon>案件队列<em>4</em></Link>
+          <Link className="active" href="/workbench"><NavIcon>▦</NavIcon>案件队列</Link>
           <span><NavIcon>◇</NavIcon>证据中心</span>
           <span><NavIcon>⌘</NavIcon>规则模板</span>
           <p>运营治理</p>
