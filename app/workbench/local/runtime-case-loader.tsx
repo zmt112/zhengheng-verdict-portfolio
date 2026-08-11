@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-import { CaseAudit, CaseDecision, CaseEvidence, CaseOverview, CaseRules, type CaseData } from "@/app/workbench/case-components";
+import { CaseAudit, CaseCounterfactual, CaseDecision, CaseEvidence, CaseOverview, CaseRules, type CaseData } from "@/app/workbench/case-components";
 import { getLocalCase } from "@/lib/case-store";
 
-export type RuntimeView = "overview" | "evidence" | "rules" | "audit" | "decision";
+export type RuntimeView = "overview" | "evidence" | "rules" | "audit" | "counterfactual" | "decision";
 
 export function RuntimeCaseLoader({ view }: { view: RuntimeView }) {
   const params = useSearchParams();
@@ -28,7 +28,7 @@ export function RuntimeCaseLoader({ view }: { view: RuntimeView }) {
   if (view === "evidence") return <CaseEvidence caseData={caseData} />;
   if (view === "rules") return <CaseRules caseData={caseData} />;
   if (view === "audit") return <CaseAudit caseData={caseData} />;
+  if (view === "counterfactual") return <CaseCounterfactual caseData={caseData} />;
   if (view === "decision") return <CaseDecision caseData={caseData} />;
   return <CaseOverview caseData={caseData} />;
 }
-

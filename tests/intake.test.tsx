@@ -14,6 +14,8 @@ describe("真实案件上传链路", () => {
 
     await user.click(screen.getByRole("button", { name: "一键载入完整样例" }));
     expect(screen.getByText("order.json")).toBeInTheDocument();
+    expect(screen.getAllByText("待验证").length).toBeGreaterThan(0);
+    expect(screen.getByText(/必须由平台证据验证/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "下一步" }));
     expect(screen.getByText("trajectory.csv")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "下一步" }));

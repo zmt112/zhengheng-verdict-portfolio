@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import axe from "axe-core";
 import { describe, expect, it } from "vitest";
 
-import { CaseDecision, CaseEvidence, CaseOverview } from "@/app/workbench/case-components";
+import { CaseCounterfactual, CaseDecision, CaseEvidence, CaseOverview } from "@/app/workbench/case-components";
 import Workbench from "@/app/workbench/page";
 import { demoCases } from "@/lib/cases";
 
@@ -76,6 +76,16 @@ describe("案件运营工作台交互契约", () => {
 
     await user.click(screen.getByRole("button", { name: "采纳建议并结案" }));
     expect(screen.getByRole("status")).toHaveTextContent("裁决已保存并写入审计记录（演示）");
+  });
+
+  it("删除决定性轨迹后，反事实实验将自动结论降级", async () => {
+    const user = userEvent.setup();
+    render(<CaseCounterfactual caseData={{ ...demoCases[0], storage: "LOCAL" }} />);
+
+    expect(screen.getByText("这是基准结果")).toBeInTheDocument();
+    await user.click(screen.getByRole("radio", { name: /删除连续轨迹/ }));
+    expect(screen.getByText("证据不足")).toBeInTheDocument();
+    expect(screen.getByText("通过：结论随证据正确变化")).toBeInTheDocument();
   });
 
   it("初始队列无 axe 可自动识别的可访问性违规", async () => {

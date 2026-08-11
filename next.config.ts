@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   output: isGithubPages ? "export" : undefined,
   basePath,
   assetPrefix: basePath || undefined,
+  allowedDevOrigins: ["127.0.0.1"],
   trailingSlash: isGithubPages,
   images: { unoptimized: true },
 };

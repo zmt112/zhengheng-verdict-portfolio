@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { buildCaseFromInputs, parseOrderJson, parseTrajectoryCsv, sampleOrder, sampleTrajectoryCsv } from "@/lib/case-ingestion";
 import { saveLocalCase, sha256, type LocalFileRecord } from "@/lib/case-store";
 import { proofTemplate } from "@/lib/cases";
+import { extractCandidateFacts } from "@/lib/trust-explanation";
 import { evaluateCase } from "@/lib/verdict-engine";
 
 type UploadState = { file: File; text: string } | null;
@@ -23,26 +24,34 @@ export default function NewCasePage() {
   const [attachments, setAttachments] = useState<File[]>([]);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [driverStatement, setDriverStatement] = useState("");
+  const [passengerStatement, setPassengerStatement] = useState("");
+  const [organized, setOrganized] = useState<ReturnType<typeof extractCandidateFacts> | null>(null);
 
   const parsed = useMemo(() => {
     if (!orderUpload || !traceUpload) return null;
     try {
       const order = parseOrderJson(orderUpload.text);
+      if (driverStatement.trim() && passengerStatement.trim()) order.claims = { driver: driverStatement.trim(), passenger: passengerStatement.trim() };
       const trajectory = parseTrajectoryCsv(traceUpload.text);
       const preview = buildCaseFromInputs({ order, trajectory, createdAt: 1784366400000 });
       return { order, trajectory, preview, result: evaluateCase(preview, proofTemplate) };
     } catch {
       return null;
     }
-  }, [orderUpload, traceUpload]);
+  }, [driverStatement, orderUpload, passengerStatement, traceUpload]);
 
   async function readTextFile(file: File, kind: "ORDER" | "TRACE") {
     setError("");
     try {
       const text = await file.text();
       if (kind === "ORDER") {
-        parseOrderJson(text);
+        const order = parseOrderJson(text);
         setOrderUpload({ file, text });
+        if (order.claims) {
+          setDriverStatement(order.claims.driver);
+          setPassengerStatement(order.claims.passenger);
+        }
       } else {
         parseTrajectoryCsv(text);
         setTraceUpload({ file, text });
@@ -57,6 +66,9 @@ export default function NewCasePage() {
     setOrderUpload({ file: new File([orderText], "order.json", { type: "application/json" }), text: orderText });
     setTraceUpload({ file: new File([sampleTrajectoryCsv], "trajectory.csv", { type: "text/csv" }), text: sampleTrajectoryCsv });
     setAttachments([]);
+    setDriverStatement(sampleOrder.claims.driver);
+    setPassengerStatement(sampleOrder.claims.passenger);
+    setOrganized(extractCandidateFacts(sampleOrder.claims.driver, sampleOrder.claims.passenger));
     setError("");
   }
 
@@ -87,8 +99,10 @@ export default function NewCasePage() {
         sha256: await sha256(item.file),
         role: item.role,
       })));
+      const order = parseOrderJson(orderUpload.text);
+      if (driverStatement.trim() && passengerStatement.trim()) order.claims = { driver: driverStatement.trim(), passenger: passengerStatement.trim() };
       const caseData = buildCaseFromInputs({
-        order: parseOrderJson(orderUpload.text),
+        order,
         trajectory: parseTrajectoryCsv(traceUpload.text),
         files: metadata,
         createdAt,
@@ -116,6 +130,12 @@ export default function NewCasePage() {
       <section className="ops-intake-card">
         {step === 1 && <>
           <header><div><span>STEP 01</span><h2>上传订单事件</h2><p>JSON 用来提供订单时间、双方主张和联系记录。</p></div><button onClick={loadSample} type="button">一键载入完整样例</button></header>
+          <section className="ops-assistant-box" aria-labelledby="assistant-title">
+            <header><div><span>AI 接入 HARNESS</span><h3 id="assistant-title">先整理双方陈述，再验证事实</h3></div><em>当前：本地确定性回退器</em></header>
+            <div className="ops-statement-grid"><label>司机陈述<textarea aria-label="司机陈述" onChange={(event) => { setDriverStatement(event.target.value); setOrganized(null); }} placeholder="例如：我已经到达，等待六分钟并打过电话。" value={driverStatement} /></label><label>乘客陈述<textarea aria-label="乘客陈述" onChange={(event) => { setPassengerStatement(event.target.value); setOrganized(null); }} placeholder="例如：我在商场门口没有看到司机。" value={passengerStatement} /></label></div>
+            <button disabled={!driverStatement.trim() && !passengerStatement.trim()} onClick={() => setOrganized(extractCandidateFacts(driverStatement, passengerStatement))} type="button">整理候选事实</button>
+            {organized && <div className="ops-candidate-results"><p>{organized.warning}</p>{organized.candidates.map((candidate) => <div key={candidate.id}><span>{candidate.source === "DRIVER" ? "司" : "乘"}</span><strong>{candidate.label}</strong><small>{candidate.signal}</small><em>待验证</em></div>)}</div>}
+          </section>
           <label className={`ops-dropzone ${orderUpload ? "ready" : ""}`}>
             <input accept="application/json,.json" aria-label="上传订单 JSON" onChange={(event) => event.target.files?.[0] && readTextFile(event.target.files[0], "ORDER")} type="file" />
             <span>{orderUpload ? "✓" : "{}"}</span><strong>{orderUpload ? orderUpload.file.name : "选择 order.json"}</strong><p>{orderUpload ? `${formatSize(orderUpload.file.size)} · 格式校验通过` : "必需字段：orderId、trip.arrivalAt、trip.cancelAt"}</p>
@@ -151,4 +171,3 @@ export default function NewCasePage() {
     </div>
   );
 }
-

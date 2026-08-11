@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { proofTemplate } from "@/lib/cases";
 import { getLocalFile, updateLocalCaseWorkflow } from "@/lib/case-store";
+import { applyCounterfactual, counterfactualOptions } from "@/lib/trust-explanation";
 import { evaluateCase } from "@/lib/verdict-engine";
 
 export type CaseData = {
@@ -41,7 +42,7 @@ const factMeta: Record<string, { label: string; tone: string }> = {
 
 const qualityLabel: Record<string, string> = { HIGH: "高可信", MEDIUM: "中可信", LOW: "低可信" };
 
-type ViewKey = "overview" | "evidence" | "rules" | "audit" | "decision";
+type ViewKey = "overview" | "evidence" | "rules" | "audit" | "counterfactual" | "decision";
 
 function caseHref(caseData: CaseData, view: ViewKey) {
   if (caseData.storage === "LOCAL") {
@@ -61,6 +62,7 @@ function CaseFrame({ caseData, view, children }: { caseData: CaseData; view: Vie
     { key: "evidence", label: `证据核验 ${caseData.evidence.length}`, href: caseHref(caseData, "evidence") },
     { key: "rules", label: "规则校验", href: caseHref(caseData, "rules") },
     { key: "audit", label: "审计记录", href: caseHref(caseData, "audit") },
+    ...(caseData.storage === "LOCAL" ? [{ key: "counterfactual", label: "反事实验证", href: caseHref(caseData, "counterfactual") }] : []),
     { key: "decision", label: "裁决处理", href: caseHref(caseData, "decision") },
   ];
 
@@ -235,6 +237,32 @@ export function CaseAudit({ caseData }: { caseData: CaseData }) {
   );
 }
 
+export function CaseCounterfactual({ caseData }: { caseData: CaseData }) {
+  const [mutation, setMutation] = useState("ORIGINAL");
+  const original = evaluateCase(caseData, proofTemplate);
+  const experiment = applyCounterfactual(caseData, mutation);
+  const gate = gateMeta[experiment.result.gate as keyof typeof gateMeta];
+  return (
+    <CaseFrame caseData={caseData} view="counterfactual">
+      <div className="ops-counterfactual-layout">
+        <section className="ops-panel ops-counterfactual-controls">
+          <header><div><span>实验</span><h2>如果证据发生变化，结论还成立吗？</h2></div></header>
+          <p className="ops-panel-intro">所有变异只作用于临时副本，不修改原案件。结论必须随决定性证据正确退化，才能证明系统没有记住预设答案。</p>
+          <div className="ops-mutation-options" role="radiogroup" aria-label="选择证据变异">
+            {counterfactualOptions.map((option) => <button aria-checked={mutation === option.id} className={mutation === option.id ? "active" : ""} key={option.id} onClick={() => setMutation(option.id)} role="radio" type="button"><span>{mutation === option.id ? "●" : "○"}</span><div><strong>{option.label}</strong><small>{option.description}</small></div></button>)}
+          </div>
+        </section>
+        <section className="ops-panel ops-counterfactual-result">
+          <header><div><span>结果</span><h2>门控变化</h2></div></header>
+          <div className="ops-gate-compare"><article><small>原始案件</small><strong>{original.gateLabel}</strong><p>{original.outcome?.label ?? "不输出责任结论"}</p></article><i>→</i><article className={gate.tone}><small>变异后</small><strong>{gate.label}</strong><p>{experiment.result.outcome?.label ?? "停止自动判责"}</p></article></div>
+          <div className="ops-reason-list"><h3>系统依据</h3>{experiment.result.reasons.slice(0, 4).map((reason: string) => <div key={reason}><span>{mutation === "ORIGINAL" ? "成立" : "变化"}</span><p>{reason}</p></div>)}</div>
+          <div className={`ops-proof-verdict ${mutation === "ORIGINAL" ? "baseline" : experiment.result.gate === original.gate ? "warning" : "pass"}`}><strong>{mutation === "ORIGINAL" ? "这是基准结果" : experiment.result.gate === original.gate ? "结论未发生预期变化，需要检查规则" : "通过：结论随证据正确变化"}</strong><p>反事实实验不会写入业务审计日志，也不会触发真实处置。</p></div>
+        </section>
+      </div>
+    </CaseFrame>
+  );
+}
+
 export function CaseDecision({ caseData }: { caseData: CaseData }) {
   const result = evaluateCase(caseData, proofTemplate);
   const gate = gateMeta[result.gate as keyof typeof gateMeta];
@@ -252,7 +280,7 @@ export function CaseDecision({ caseData }: { caseData: CaseData }) {
           {result.outcome ? <><div className="ops-decision-result"><span>建议结论</span><h3>{result.outcome.label}</h3><p>{result.outcome.conclusion}</p></div><div className="ops-action-box"><span>建议处置</span><p>{result.outcome.action}</p></div><div className="ops-decision-actions"><button onClick={() => performAction("EVIDENCE")} type="button">退回补证</button><button onClick={() => performAction("REVIEW")} type="button">转专家复核</button><button className="primary" onClick={() => performAction("RESOLVE")} type="button">采纳建议并结案</button></div></> : <><div className={`ops-blocked-box ${gate.tone}`}><span>{result.gate === "EVIDENCE_CONFLICT" ? "!" : "—"}</span><div><h3>{gate.label}，自动处置已停止</h3><p>{gate.hint}</p></div></div><div className="ops-reason-list"><h3>需要处理的问题</h3>{result.reasons.slice(0, 5).map((reason: string) => <div key={reason}><span>待处理</span><p>{reason}</p></div>)}</div><div className="ops-decision-actions"><button onClick={() => performAction("EVIDENCE")} type="button">退回补证</button><button className="primary" onClick={() => performAction("REVIEW")} type="button">转人工复核</button></div></>}
           {actionNotice && <div className="ops-inline-notice" role="status"><span>✓</span>{actionNotice}</div>}
         </section>
-        <aside className="ops-panel ops-decision-proof"><span>裁决依据</span><h2>{caseData.id} 证据快照</h2><dl><div><dt>事实覆盖</dt><dd>{result.coverage}%</dd></div><div><dt>证据条目</dt><dd>{caseData.evidence.length}</dd></div><div><dt>规则版本</dt><dd>{proofTemplate.version}</dd></div></dl><Link href={caseHref(caseData, "rules")}>查看规则校验 →</Link><Link href={caseHref(caseData, "audit")}>查看审计记录 →</Link><p>{caseData.storage === "LOCAL" ? "操作会真实写入浏览器本地案件库和审计日志。" : "演示案件不会产生真实业务处置。"}</p></aside>
+        <aside className="ops-panel ops-decision-proof"><span>裁决依据</span><h2>{caseData.id} 证据快照</h2><dl><div><dt>事实覆盖</dt><dd>{result.coverage}%</dd></div><div><dt>证据条目</dt><dd>{caseData.evidence.length}</dd></div><div><dt>规则版本</dt><dd>{proofTemplate.version}</dd></div></dl><Link href={caseHref(caseData, "rules")}>查看规则校验 →</Link><Link href={caseHref(caseData, "audit")}>查看审计记录 →</Link>{caseData.storage === "LOCAL" && <><Link href={caseHref(caseData, "counterfactual")}>运行反事实验证 →</Link><Link href={`/case-verdict?caseId=${encodeURIComponent(caseData.id)}`}>生成双视角裁决书 ↗</Link></>}<p>{caseData.storage === "LOCAL" ? "操作会真实写入浏览器本地案件库和审计日志。" : "演示案件不会产生真实业务处置。"}</p></aside>
       </div>
     </CaseFrame>
   );
