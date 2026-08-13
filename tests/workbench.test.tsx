@@ -12,7 +12,7 @@ describe("案件运营工作台交互契约", () => {
     render(<Workbench />);
 
     expect(screen.getByRole("heading", { name: "案件队列" })).toBeInTheDocument();
-    expect(screen.getAllByTestId(/^queue-CASE-/)).toHaveLength(4);
+    expect(screen.getAllByTestId(/^queue-CASE-/)).toHaveLength(6);
     expect(screen.queryByRole("heading", { name: "必要事实" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "证据账本" })).not.toBeInTheDocument();
   });
@@ -24,6 +24,12 @@ describe("案件运营工作台交互契约", () => {
     await user.type(screen.getByRole("textbox", { name: "搜索案件" }), "CASE-002");
     expect(screen.getByTestId("queue-CASE-002")).toBeInTheDocument();
     expect(screen.queryByTestId("queue-CASE-001")).not.toBeInTheDocument();
+  });
+
+  it("生命周期案件从列表操作列进入单案详情", () => {
+    render(<Workbench />);
+    expect(screen.getByRole("link", { name: "查看 CASE-005 详情" })).toHaveAttribute("href", "/workbench/cases/CASE-005/lifecycle");
+    expect(screen.getByRole("link", { name: "查看 CASE-006 详情" })).toHaveAttribute("href", "/workbench/cases/CASE-006/lifecycle");
   });
 
   it("可筛选证据不足案件", async () => {
